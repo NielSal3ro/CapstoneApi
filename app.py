@@ -1,14 +1,15 @@
 from flask import Flask, request, jsonify
 import pyodbc
+import os
 
 app = Flask(__name__)
 
 # Azure SQL connection settings
-server = 'nielnnmc.database.windows.net'
-database = 'Capstone'
-username = 'Capstone2025!@nielnnmc'
-password = 'Capstone2025$'
-driver = '{ODBC Driver 18 for SQL Server}'
+server = os.environ['DB_SERVER']
+database = os.environ['DB_NAME']
+username = os.environ['DB_USER']
+password = os.environ['DB_PASS']
+driver = '{ODBC Driver 17 for SQL Server}'
 
 def get_connection():
     return pyodbc.connect(
