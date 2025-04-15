@@ -4,6 +4,10 @@ import os
 
 app = Flask(__name__)
 
+@app.route('/')
+def index():
+    return "Flask is running!"
+
 # Azure SQL connection settings
 server = os.environ['DB_SERVER']
 database = os.environ['DB_NAME']
