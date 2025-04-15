@@ -21,7 +21,7 @@ def get_products():
     category = request.args.get('category')
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT ProductID, ProductName, ProductImage FROM Products WHERE ProductCategory = ?", category)
+    cursor.execute("SELECT ProductID, ProductName, ProductImage FROM Products WHERE ProductCategory = ?", (category,))
     rows = cursor.fetchall()
     conn.close()
 
@@ -40,7 +40,7 @@ def get_product_details():
     product_id = request.args.get('id')
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT Product_Biodegradable, Product_GreenHouseGas, Product_WaterUse, Product_HumanHours, Product_MachineHours FROM ProductInformation WHERE ProductID = ?", product_id)
+    cursor.execute("SELECT Product_Biodegradable, Product_GreenHouseGas, Product_WaterUse, Product_HumanHours, Product_MachineHours FROM ProductInformation WHERE ProductID = ?", (product_id,))
     row = cursor.fetchone()
     conn.close()
 
