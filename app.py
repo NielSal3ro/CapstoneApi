@@ -13,7 +13,7 @@ server = os.environ['DB_SERVER']
 database = os.environ['DB_NAME']
 username = os.environ['DB_USER']
 password = os.environ['DB_PASS']
-driver = '{ODBC Driver 17 for SQL Server}'
+driver = '{ODBC Driver 18 for SQL Server}'
 
 def get_connection():
     return pyodbc.connect(
