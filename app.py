@@ -23,21 +23,27 @@ def get_connection():
 @app.route('/products', methods=['GET'])
 def get_products():
     category = request.args.get('category')
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT ProductID, ProductName, ProductImage FROM Products WHERE ProductCategory = ?", (category,))
-    rows = cursor.fetchall()
-    conn.close()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT ProductID, ProductName, ProductImage FROM Products WHERE ProductCategory = ?", (category,))
+        rows = cursor.fetchall()
+        conn.close()
 
-    products = []
-    for row in rows:
-        products.append({
-            'id': row.ProductID,
-            'name': row.ProductName,
-            'image': row.ProductImage
-        })
+        products = []
+        for row in rows:
+            products.append({
+                'id': row.ProductID,
+                'name': row.ProductName,
+                'image': row.ProductImage
+            })
 
-    return jsonify(products)
+        return jsonify(products)
+    
+    except Exception as e:
+        print("ERROR:", str(e))
+        return jsonify({"error": "Database connection failed", "details": str(e)}), 500
+
 
 @app.route('/productdetails', methods=['GET'])
 def get_product_details():
