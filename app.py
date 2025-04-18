@@ -64,66 +64,28 @@ def insert_record(table, fields, values):
     conn.commit()
     conn.close()
 
-# ——— Base endpoints ———
-@app.route('/')
-def index():
-    return "Flask is running!"
+# ——— Column definitions ———
+product_cols = [
+    'ProductID',
+    'ProductName',
+    'ProductCategory',
+    'ProductImage'
+]
 
-@app.route('/products', methods=['GET'])
-def get_products():
-    category = request.args.get('category')
-    try:
-        conn   = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT ProductID, ProductName, ProductImage FROM Products WHERE ProductCategory = ?;",
-            (category,)
-        )
-        rows = cursor.fetchall()
-        conn.close()
+product_info_cols = [
+    'InformationID',
+    'Product_Biodegradable',
+    'Product_GreenHouseGas',
+    'Product_WaterUse',
+    'Product_HumanHours',
+    'Product_MachineHours',
+    'Product_Biodegradable_Detailed',
+    'Product_GreenHouseGas_Detailed',
+    'Product_WaterUse_Detailed',
+    'Product_ProductionHours_Detailed',
+    'ProductID'
+]
 
-        products = []
-        for row in rows:
-            products.append({
-                'id':    row.ProductID,
-                'name':  row.ProductName,
-                'image': to_serializable(row.ProductImage)
-            })
-        return jsonify(products)
-    except Exception as e:
-        print("ERROR:", e)
-        return jsonify({
-            "error":   "Database connection failed",
-            "details": str(e)
-        }), 500
-
-@app.route('/productdetails', methods=['GET'])
-def get_product_details():
-    product_id = request.args.get('id')
-    conn   = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT Product_Biodegradable, Product_GreenHouseGas, Product_WaterUse, "
-        "Product_HumanHours, Product_MachineHours "
-        "FROM ProductInformation WHERE ProductID = ?;",
-        (product_id,)
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        return jsonify({'error': 'Product not found'}), 404
-
-    biodegradable, ghg, water, human_hours, machine_hours = row
-    return jsonify({
-        'biodegradable': to_serializable(biodegradable),
-        'ghg':           to_serializable(ghg),
-        'water':         to_serializable(water),
-        'humanHours':    human_hours,
-        'machineHours':  machine_hours
-    })
-
-# ——— AlternateProducts endpoints ———
 alt_prod_cols = [
     'Alternate_Product_ID',
     'Alternate_Product_Name',
@@ -134,6 +96,55 @@ alt_prod_cols = [
     'Alternate_MachineHours',
     'ProductID'
 ]
+
+user_cols = ['userID', 'Username', 'User_FName', 'User_LName', 'Password']
+
+# ——— Endpoints ———
+@app.route('/')
+def index():
+    return "Flask is running!"
+
+@app.route('/products', methods=['GET'])
+def get_products():
+    category = request.args.get('category')
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+        cols_sql = ", ".join(product_cols)
+        cursor.execute(
+            f"SELECT {cols_sql} FROM Products WHERE ProductCategory = ?;",
+            (category,)
+        )
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
+
+    products = [
+        { col: to_serializable(val) for col, val in zip(product_cols, row) }
+        for row in rows
+    ]
+    return jsonify(products)
+
+@app.route('/productdetails', methods=['GET'])
+def get_product_details():
+    product_id = request.args.get('id')
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+        cols_sql = ", ".join(product_info_cols)
+        cursor.execute(
+            f"SELECT {cols_sql} FROM ProductInformation WHERE ProductID = ?;",
+            (product_id,)
+        )
+        row = cursor.fetchone()
+    finally:
+        conn.close()
+
+    if not row:
+        return jsonify({'error': 'Product not found'}), 404
+
+    details = { col: to_serializable(val) for col, val in zip(product_info_cols, row) }
+    return jsonify(details)
 
 @app.route('/alternateproducts', methods=['GET'])
 def get_alternate_products():
@@ -149,25 +160,15 @@ def get_alternate_product(alt_id):
 @app.route('/alternateproducts', methods=['POST'])
 def create_alternate_product():
     payload = request.get_json()
-    fields  = [
-        'Alternate_Product_Name',
-        'Alternate_Biodegradable',
-        'Alternate_GreenHouseGas',
-        'Alternate_WaterUse',
-        'Alternate_HumanHours',
-        'Alternate_MachineHours',
-        'ProductID'
-    ]
-    values = [payload.get(f) for f in fields]
+    fields  = alt_prod_cols[1:]  # skip primary key
+    values  = [payload.get(f) for f in fields]
     insert_record('AlternateProducts', fields, values)
     return jsonify({'message': 'Alternate product created'}), 201
-
-# ——— USERS endpoints ———
-user_cols = ['USERID', 'USERNAME', 'PASSWORD', 'USER_FNAME','USER_LNAME ',]
 
 @app.route('/users', methods=['GET'])
 def get_users():
     users = fetch_all('USERS', user_cols)
+    # Optionally hide passwords:
     for u in users:
         u.pop('Password', None)
     return jsonify(users)
@@ -183,8 +184,8 @@ def get_user(user_id):
 @app.route('/users', methods=['POST'])
 def create_user():
     payload = request.get_json()
-    fields  = ['Username', 'Password']
-    values  = [payload.get('Username'), payload.get('Password')]
+    fields  = ['Username', 'User_FName', 'User_LName', 'Password']
+    values  = [payload.get(f) for f in fields]
     insert_record('USERS', fields, values)
     return jsonify({'message': 'User created'}), 201
 
@@ -207,6 +208,5 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
 
-
-# expose WSGI for deployments
+# expose WSGI for Render deployments
 application = app
