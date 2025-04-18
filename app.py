@@ -163,7 +163,7 @@ def create_alternate_product():
     return jsonify({'message': 'Alternate product created'}), 201
 
 # ——— USERS endpoints ———
-user_cols = ['userID', 'Username', 'Password']
+user_cols = ['USERID', 'USERNAME', 'PASSWORD', 'USER_FNAME','USER_LNAME ',]
 
 @app.route('/users', methods=['GET'])
 def get_users():
