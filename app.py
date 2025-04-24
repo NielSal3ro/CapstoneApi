@@ -15,7 +15,8 @@ def get_db_connection():
     conn_str = (
         f'DRIVER={driver};SERVER={server};DATABASE={database};'
         f'UID={username};PWD={password};Encrypt=yes;'
-        'TrustServerCertificate=no;Connection Timeout=30;'
+        'TrustServerCertificate=no;Connection Timeout=60;'
+        "LoginTimeout=60;"
     )
     return pyodbc.connect(conn_str)
 
