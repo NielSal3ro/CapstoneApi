@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 import pyodbc
 import os
 import decimal
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -205,7 +206,42 @@ def authenticate_user():
     if row:
         return jsonify({'userID': row[0], 'message': 'Authenticated'}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
-
+@app.route('/impact', methods=['POST'])
+def add_impact():
+    data = request.get_json()
+    # expects { "userID":1, "ghg":7.98, "water":604.53 }
+    fields = ['UserID','GHG','Water']
+    values = [data['userID'], data['ghg'], data['water']]
+    try:
+        insert_record('UserImpact', fields, values)
+        return jsonify({'status':'ok'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/impact/summary', methods=['GET'])
+def impact_summary():
+    user_id = request.args.get('userID', type=int)
+    # sum only last 24 hours
+    since = (datetime.utcnow() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+    qry = """
+      SELECT
+        SUM(GHG)   AS totalGhg,
+        SUM(Water) AS totalWater
+      FROM UserImpact
+      WHERE UserID = ?
+        AND ImpactTime >= ?
+    """
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute(qry, (user_id, since))
+        row = cur.fetchone()
+        conn.close()
+        return jsonify({
+          'totalGhg':   float(row.totalGhg or 0),
+          'totalWater': float(row.totalWater or 0)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
