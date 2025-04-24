@@ -221,11 +221,12 @@ def add_impact():
 def impact_summary():
     user_id = request.args.get('userID', type=int)
     if not user_id:
-        return jsonify({'error':'userID required'}), 400
+        return jsonify({'error': 'userID required'}), 400
 
     since_time = datetime.utcnow() - timedelta(days=1)
     try:
-        conn = get_connection()
+        # ← use your real connection function
+        conn = get_db_connection()
         cur  = conn.cursor()
         cur.execute("""
             SELECT
@@ -237,15 +238,17 @@ def impact_summary():
         row = cur.fetchone()
         conn.close()
 
-        # row is a tuple (sum1, sum2), indexes [0],[1]
         total_ghg   = float(row[0] or 0)
         total_water = float(row[1] or 0)
-
-        return jsonify({'totalGhg': total_ghg, 'totalWater': total_water})
+        return jsonify({
+            'totalGhg': total_ghg,
+            'totalWater': total_water
+        })
 
     except Exception as e:
         app.logger.error(f"impact_summary error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
         
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
