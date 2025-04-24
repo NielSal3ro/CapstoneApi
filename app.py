@@ -220,28 +220,33 @@ def add_impact():
 @app.route('/impact/summary', methods=['GET'])
 def impact_summary():
     user_id = request.args.get('userID', type=int)
-    # sum only last 24 hours
-    since = (datetime.utcnow() - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
-    qry = """
-      SELECT
-        SUM(GHG)   AS totalGhg,
-        SUM(Water) AS totalWater
-      FROM UserImpact
-      WHERE UserID = ?
-        AND ImpactTime >= ?
-    """
+    if not user_id:
+        return jsonify({'error':'userID required'}), 400
+
+    since_time = datetime.utcnow() - timedelta(days=1)
     try:
         conn = get_connection()
         cur  = conn.cursor()
-        cur.execute(qry, (user_id, since))
+        cur.execute("""
+            SELECT
+                SUM(GHG)   AS totalGhg,
+                SUM(Water) AS totalWater
+            FROM UserImpact
+            WHERE UserID = ? AND ImpactTime >= ?
+        """, (user_id, since_time))
         row = cur.fetchone()
         conn.close()
-        return jsonify({
-          'totalGhg':   float(row.totalGhg or 0),
-          'totalWater': float(row.totalWater or 0)
-        })
+
+        # row is a tuple (sum1, sum2), indexes [0],[1]
+        total_ghg   = float(row[0] or 0)
+        total_water = float(row[1] or 0)
+
+        return jsonify({'totalGhg': total_ghg, 'totalWater': total_water})
+
     except Exception as e:
+        app.logger.error(f"impact_summary error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+        
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
