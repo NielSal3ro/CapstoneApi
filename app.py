@@ -97,7 +97,7 @@ alt_prod_cols = [
     'Alternate_WaterUse',
     'Alternate_HumanHours',
     'Alternate_MachineHours',
-    'AlternateProductImage',
+    'Alternate_Product_Image',
     'ProductID'
 ]
 
